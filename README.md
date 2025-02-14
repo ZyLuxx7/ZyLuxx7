@@ -1,5 +1,3 @@
-REM
-DELAY 1000
 GUI r
 DELAY 500
 STRING https://github.com/ZyLuxx7/bluescreenbyzyluxx7/blob/main/FasterBlueScreenByZyLuxx7
