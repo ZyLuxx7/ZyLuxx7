@@ -1,5 +1,3 @@
-REM Author: @unveroleone | https://github.com/veroleone
-REM
 DELAY 1000
 GUI r
 DELAY 500
