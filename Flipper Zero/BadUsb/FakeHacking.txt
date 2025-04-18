@@ -1,12 +1,12 @@
-GUI
+GUI e
 DELAY 1
-cmd
-DELAY 1
-ENTER
-DELAY 1
-color a
+STRING cmd
 DELAY 1
 ENTER
 DELAY 1
-dir /s
+STRING color a
+DELAY 1
+ENTER
+DELAY 1
+STRING dir /s
 ENTER
