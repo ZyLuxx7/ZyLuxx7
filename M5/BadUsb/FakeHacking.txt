@@ -1,0 +1,12 @@
+GUI
+DELAY 1
+cmd
+DELAY 1
+ENTER
+DELAY 1
+color a
+DELAY 1
+ENTER
+DELAY 1
+dir /s
+ENTER

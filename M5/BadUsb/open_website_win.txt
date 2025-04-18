@@ -1,0 +1,7 @@
+REM Author: @unveroleone | https://github.com/veroleone
+REM
+DELAY 1000
+GUI r
+DELAY 500
+STRING https://www.pornhub.com/
+ENTER
