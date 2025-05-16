@@ -1,0 +1,41 @@
+# 🐱 Katzen-Desktop-Chaos by ChatGPT & ZyLuxx7
+
+# === EINSTELLUNGEN ===
+$imageUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Hauskatze_langhaar.jpg/960px-Hauskatze_langhaar.jpg"
+$imageName = "katze.jpg"
+$imageCount = 500
+$desktop = [Environment]::GetFolderPath("Desktop")
+$imagePath = Join-Path $desktop $imageName
+
+# === 1. Bild herunterladen ===
+Invoke-WebRequest -Uri $imageUrl -OutFile $imagePath -UseBasicParsing
+Write-Host "✅ Katzenbild gespeichert: $imagePath"
+
+# === 2. Desktop in Papierkorb verschieben ===
+$shell = New-Object -ComObject Shell.Application
+$items = Get-ChildItem $desktop
+foreach ($item in $items) {
+    if ($item.Name -ne $imageName -and $item.Name -notlike "Katze_*") {
+        $shell.Namespace($desktop).ParseName($item.Name).InvokeVerb("delete")
+    }
+}
+Write-Host "🗑️ Desktop-Dateien in den Papierkorb verschoben."
+
+# === 3. Viele Katzenbilder auf Desktop kopieren ===
+for ($i = 1; $i -le $imageCount; $i++) {
+    Copy-Item $imagePath -Destination (Join-Path $desktop ("katze_$i.jpg")) -Force
+    $shortcutPath = Join-Path $desktop ("Katze_$i.url")
+    Set-Content -Path $shortcutPath -Value "[InternetShortcut]`nURL=$imageUrl"
+}
+Write-Host "😼 $imageCount Katzenbilder + Verknüpfungen erstellt."
+
+# === 4. Bild als Hintergrund setzen ===
+Add-Type @"
+using System.Runtime.InteropServices;
+public class Wallpaper {
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);
+}
+"@
+[Wallpaper]::SystemParametersInfo(20, 0, $imagePath, 3)
+Write-Host "🖼️ Hintergrundbild gesetzt."
