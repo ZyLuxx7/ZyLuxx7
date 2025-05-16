@@ -1,0 +1,9 @@
+# reset_shutdown.ps1
+
+$desktop = [Environment]::GetFolderPath("Desktop")
+
+# Alle shutdown_*.bat Dateien und shutdown.bat entfernen
+Get-ChildItem -Path $desktop -Filter "shutdown_*.bat" -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+Remove-Item -Path (Join-Path $desktop "shutdown.bat") -Force -ErrorAction SilentlyContinue
+
+Write-Host "✅ Shutdown-Batchdateien wurden entfernt."
