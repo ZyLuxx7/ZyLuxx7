@@ -1,0 +1,33 @@
+# ♻️ Reset-Skript für Katzen-Chaos
+
+# === Desktop-Pfad ===
+$desktop = [Environment]::GetFolderPath("Desktop")
+
+# === 1. Katzenbilder und Verknüpfungen löschen ===
+Get-ChildItem -Path $desktop -Filter "katze_*.jpg" | Remove-Item -Force
+Get-ChildItem -Path $desktop -Filter "Katze_*.url" | Remove-Item -Force
+Remove-Item -Path (Join-Path $desktop "katze.jpg") -Force -ErrorAction SilentlyContinue
+
+Write-Host "`n🧹 Katzenbilder entfernt. Desktop ist sauber."
+
+# === 2. Dateien aus dem Papierkorb auf Desktop kopieren ===
+$shell = New-Object -ComObject Shell.Application
+$recycleBin = $shell.Namespace(0xA)  # 0xA = Papierkorb
+
+for ($i = 0; $i -lt $recycleBin.Items().Count; $i++) {
+    $item = $recycleBin.Items().Item($i)
+    $name = $item.Name
+    $desktopPath = Join-Path $desktop $name
+
+    try {
+        # Falls Datei vorhanden, wird sie kopiert (nicht verschoben)
+        if (Test-Path $item.Path) {
+            Copy-Item -Path $item.Path -Destination $desktopPath -Force
+            Write-Host "♻️ Wiederhergestellt: $name"
+        }
+    } catch {
+        Write-Host "⚠️ Fehler beim Wiederherstellen von: $name"
+    }
+}
+
+Write-Host "`n✅ Rücksetzung abgeschlossen."
