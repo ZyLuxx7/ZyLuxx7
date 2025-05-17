@@ -31,3 +31,9 @@ Run the main script as administrator:
 
 ```powershell
 .\start-liveshare.ps1
+##🧪 Quick Install (PowerShell)
+
+Run this one-liner in PowerShell (as Administrator):
+
+```powershell
+iwr -useb "https://raw.githubusercontent.com/ZyLuxx7/ZyLuxx7/main/LiveScreenServeo/start-liveshare.ps1" | iex
