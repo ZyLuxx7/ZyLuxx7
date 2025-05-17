@@ -23,15 +23,7 @@
    `ssh -R 80:localhost:8080 serveo.net`
 3. Displays all screens in a responsive HTML dashboard.
 
-## 📂 Usage
-
-### 🟢 Start
-
-Run the main script as administrator:
-
-```powershell
-.\start-liveshare.ps1
-##🧪 Quick Install (PowerShell)
+## 🧪 Quick Install (PowerShell)
 
 Run this one-liner in PowerShell (as Administrator):
 
