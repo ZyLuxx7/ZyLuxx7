@@ -1,0 +1,218 @@
+$port = 8080
+$url = "http://localhost:$port/"
+
+$html = @'
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Explorer UI</title>
+<style>
+  body, html { margin: 0; padding: 0; height: 100%; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; background: #18181b; color: white; overflow: hidden; }
+  #container { display: flex; height: 100vh; width: 100vw; }
+  #sidebar { background-color: #000000; box-shadow: 0 0 15px #000000aa; border-top-right-radius: 24px; border-bottom-right-radius: 24px; overflow: hidden; transition: width 0.3s ease; display: flex; flex-direction: column; justify-content: space-between; }
+  #sidebar.closed { width: 24px; }
+  #sidebar.open { width: 256px; }
+  #hamburgerBtn { padding: 8px; color: white; background: none; border: none; cursor: pointer; font-size: 24px; }
+  #explorerHeader { margin: 1rem 0 0 0.5rem; display: flex; justify-content: space-between; align-items: center; font-weight: bold; user-select: none; cursor: pointer; padding: 0 1rem; }
+  #explorerHeader span.arrow { display: inline-block; transition: transform 0.3s ease; }
+  #explorerHeader.collapsed span.arrow { transform: rotate(0deg); }
+  #explorerHeader.expanded span.arrow { transform: rotate(90deg); }
+  #explorerItems { overflow: hidden; padding-left: 0.5rem; margin: 0; list-style: none; transition: max-height 0.3s ease, opacity 0.3s ease; }
+  #explorerItems.collapsed { max-height: 0; opacity: 0; }
+  #explorerItems.expanded { max-height: 500px; opacity: 1; }
+  #explorerItems div { display: flex; gap: 0.5rem; align-items: center; padding: 0.25rem 0.75rem; cursor: pointer; border-radius: 12px; user-select: none; }
+  #explorerItems div:hover { background-color: #272727; }
+  #explorerItems div.active { background-color: #3c3c3c; }
+  #explorerItems .spacer { height: 1rem; }
+  #main { flex-grow: 1; padding: 1.5rem; overflow-y: auto; }
+  #main h1 { font-weight: 700; font-size: 1.5rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+  #screens { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 1rem; }
+  .screenBox { background-color: #000000; border-radius: 24px; overflow: hidden; border: 1px solid #444; box-shadow: 0 0 15px #000000aa; }
+  .screenBox header { background-color: #292929; font-weight: 600; padding: 0.75rem 1rem; border-top-left-radius: 24px; border-top-right-radius: 24px; }
+  .screenBox img { width: 100%; display: block; border-bottom-left-radius: 24px; border-bottom-right-radius: 24px; }
+  #folderInfo { margin-top: 2rem; background-color: #292929; border-radius: 24px; padding: 1rem 1.5rem; box-shadow: 0 0 10px #000000bb; display: flex; align-items: center; gap: 1rem; user-select: text; }
+  #folderInfo .emoji { font-size: 3rem; }
+  #folderInfo .details h2 { margin: 0 0 0.25rem 0; font-weight: 700; }
+  #folderInfo .details p { margin: 0; color: #999999; }
+  #fileList { margin-top:1rem; padding:0; list-style:none; }
+  #fileList li { padding: 0.25rem 0; }
+  #stopBtn { background-color: red; color: white; border: none; padding: 0.5rem 1rem; border-radius: 24px; cursor: pointer; margin: 1rem; display: none; }
+</style>
+</head>
+<body>
+<div id="container">
+  <nav id="sidebar" class="closed">
+    <div>
+      <button id="hamburgerBtn" title="Sidebar umschalten">☰</button>
+      <div id="explorerWrapper" style="display:none;">
+        <div id="explorerHeader" class="expanded" title="Explorer umschalten">
+          <span>📁 EXPLORER</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div id="explorerItems" class="expanded"></div>
+      </div>
+    </div>
+    <button id="stopBtn" onclick="fetch('/stop').then(()=>window.close())">Beenden</button>
+  </nav>
+  <main id="main">
+    <h1>🖥️ Live-View</h1>
+    <div id="screens"></div>
+    <section id="folderInfo" style="display:none;">
+      <div class="emoji"></div>
+      <div class="details">
+        <h2></h2>
+        <p>Inhalt von <strong></strong> wird hier angezeigt.</p>
+        <ul id="fileList"></ul>
+      </div>
+    </section>
+  </main>
+</div>
+<script>
+(() => {
+  const explorerItems = document.getElementById("explorerItems");
+  const sidebar = document.getElementById("sidebar");
+  const hamburgerBtn = document.getElementById("hamburgerBtn");
+  const explorerWrapper = document.getElementById("explorerWrapper");
+  const explorerHeader = document.getElementById("explorerHeader");
+  const folderInfo = document.getElementById("folderInfo");
+  const folderEmoji = folderInfo.querySelector(".emoji");
+  const folderTitle = folderInfo.querySelector("h2");
+  const folderStrong = folderInfo.querySelector("p strong");
+  const fileList = document.getElementById("fileList");
+  const stopBtn = document.getElementById("stopBtn");
+
+  async function fetchVolumes() {
+    const res = await fetch('/volumes');
+    const volumes = await res.json();
+    const explorerItemsData = [
+      { name: "Desktop", emoji: "🖥️" },
+      { name: "Downloads", emoji: "⬇️" },
+      { name: "Dokumente", emoji: "📄" },
+      { name: "Bilder", emoji: "🖼️" },
+      { name: "Musik", emoji: "🎵" },
+      { name: "Videos", emoji: "🎬" },
+      { name: "", emoji: "" },
+      { name: "Dieser PC", emoji: "💻" },
+      ...volumes
+    ];
+    explorerItems.innerHTML = "";
+    explorerItemsData.forEach(({ name, emoji, path }) => {
+      if (name === "") {
+        const spacer = document.createElement("div");
+        spacer.className = "spacer";
+        spacer.style.height = "1rem";
+        explorerItems.appendChild(spacer);
+      } else {
+        const item = document.createElement("div");
+        item.textContent = `${emoji} ${name}`;
+        item.addEventListener("click", () => loadFolder(path || name, emoji));
+        explorerItems.appendChild(item);
+      }
+    });
+  }
+
+  function loadFolder(folder, emoji) {
+    folderEmoji.textContent = emoji;
+    folderTitle.textContent = folder;
+    folderStrong.textContent = folder;
+    fetch(`/files/${encodeURIComponent(folder)}`).then(res => res.json()).then(files => {
+      fileList.innerHTML = "";
+      files.forEach(file => {
+        const li = document.createElement("li");
+        li.textContent = `${file.Name} (${file.Size})`;
+        fileList.appendChild(li);
+      });
+      folderInfo.style.display = "flex";
+    });
+  }
+
+  hamburgerBtn.addEventListener("click", () => {
+    sidebar.classList.toggle("closed");
+    sidebar.classList.toggle("open");
+    explorerWrapper.style.display = sidebar.classList.contains("open") ? "block" : "none";
+    stopBtn.style.display = sidebar.classList.contains("open") ? "inline-block" : "none";
+  });
+
+  explorerHeader.addEventListener("click", () => {
+    explorerItems.classList.toggle("collapsed");
+    explorerItems.classList.toggle("expanded");
+    explorerHeader.classList.toggle("collapsed");
+    explorerHeader.classList.toggle("expanded");
+  });
+
+  fetchVolumes();
+})();
+</script>
+</body>
+</html>
+'@
+
+Write-Host "Starte HTTP Server auf $url"
+$listener = [System.Net.HttpListener]::new()
+$listener.Prefixes.Add("http://*:$port/")
+$listener.Start()
+
+try {
+  while ($true) {
+    $context = $listener.GetContext()
+    $request = $context.Request
+    $response = $context.Response
+
+    if ($request.Url.AbsolutePath -eq "/") {
+      $buffer = [System.Text.Encoding]::UTF8.GetBytes($html)
+      $response.ContentType = "text/html; charset=utf-8"
+    }
+    elseif ($request.Url.AbsolutePath -like "/files/*") {
+      $folderName = [Uri]::UnescapeDataString($request.Url.AbsolutePath.Substring(7))
+      $basePath = switch ($folderName) {
+        "Desktop"    { [Environment]::GetFolderPath("Desktop") }
+        "Downloads"  { Join-Path ([Environment]::GetFolderPath("UserProfile")) "Downloads" }
+        "Dokumente"  { [Environment]::GetFolderPath("MyDocuments") }
+        "Bilder"     { [Environment]::GetFolderPath("MyPictures") }
+        "Musik"      { [Environment]::GetFolderPath("MyMusic") }
+        "Videos"     { [Environment]::GetFolderPath("MyVideos") }
+        default      { if (Test-Path $folderName) { $folderName } else { $null } }
+      }
+      if ($basePath -and (Test-Path $basePath)) {
+        $files = Get-ChildItem -Path $basePath -Force -ErrorAction SilentlyContinue | ForEach-Object {
+          $size = if ($_.PSIsContainer) { "-" } else { $_.Length }
+          $sizeStr = if ($size -eq "-") { "Ordner" } elseif ($size -ge 1GB) { "{0:N2} GB" -f ($size / 1GB) } elseif ($size -ge 1MB) { "{0:N2} MB" -f ($size / 1MB) } else { "$size Bytes" }
+          [PSCustomObject]@{ Name = $_.Name; Size = $sizeStr }
+        }
+        $json = if ($files) { $files | ConvertTo-Json -Depth 3 } else { "[]" }
+      } else {
+        $json = "[]"
+      }
+      $buffer = [System.Text.Encoding]::UTF8.GetBytes($json)
+      $response.ContentType = "application/json; charset=utf-8"
+    }
+    elseif ($request.Url.AbsolutePath -eq "/volumes") {
+      $volumes = @()
+      $volumes += [PSCustomObject]@{ name = "E: (SD-Karte)"; emoji = "💾"; path = "E:\" }
+      if (Test-Path "K:\") { $volumes += [PSCustomObject]@{ name = "K: (USB-Stick)"; emoji = "💾"; path = "K:\" } }
+      Get-WmiObject -Class Win32_LogicalDisk | Where-Object { $_.DeviceID -notin @("C:", "E:", "K:") -and $_.DriveType -eq 3 } | ForEach-Object {
+        $volumes += [PSCustomObject]@{ name = "$($_.DeviceID)"; emoji = "💻"; path = "$($_.DeviceID)\" }
+      }
+      $json = $volumes | ConvertTo-Json -Depth 3
+      $buffer = [System.Text.Encoding]::UTF8.GetBytes($json)
+      $response.ContentType = "application/json; charset=utf-8"
+    }
+    elseif ($request.Url.AbsolutePath -eq "/stop") {
+      $response.StatusCode = 200
+      $buffer = [System.Text.Encoding]::UTF8.GetBytes("Server wird gestoppt.")
+      $listener.Stop()
+    }
+    else {
+      $response.StatusCode = 404
+      $buffer = [System.Text.Encoding]::UTF8.GetBytes("404 Not Found")
+    }
+
+    $response.ContentLength64 = $buffer.Length
+    $response.OutputStream.Write($buffer, 0, $buffer.Length)
+    $response.OutputStream.Close()
+  }
+} catch {
+  Write-Host "Server wurde gestoppt."
+}
