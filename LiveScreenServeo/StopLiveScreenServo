@@ -1,24 +1,21 @@
 # ---------------------------
-# Alle laufenden Liveshare- & SSH-Prozesse beenden
+# Stop all running Liveshare & SSH processes
 # ---------------------------
 
-# Versuche Liveshare-Skript zu finden (per Dateiname)
 $liveshareScriptName = "run-liveshare.ps1"
 
-# Beende alle PowerShell-Prozesse, die das Liveshare-Skript ausführen
 Get-CimInstance Win32_Process | Where-Object {
     $_.CommandLine -like "*$liveshareScriptName*"
 } | ForEach-Object {
-    Write-Host "❌ Beende Liveshare-Prozess (PID: $($_.ProcessId))"
+    Write-Host "❌ End Liveshare process (PID: $($_.ProcessId))"
     Stop-Process -Id $_.ProcessId -Force
 }
 
-# Beende alle SSH-Tunnel zu serveo.net
 Get-Process ssh -ErrorAction SilentlyContinue | Where-Object {
     $_.Path -like "*ssh*" -and $_.MainWindowTitle -eq ""
 } | ForEach-Object {
-    Write-Host "❌ Beende SSH-Tunnel (PID: $($_.Id))"
+    Write-Host "❌ Terminate SSH tunnel (PID: $($_.Id))"
     Stop-Process -Id $_.Id -Force
 }
 
-Write-Host "`n✅ Alle Komponenten wurden beendet."
+Write-Host "`n✅ All components have been terminated."
