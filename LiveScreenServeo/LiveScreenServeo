@@ -114,7 +114,7 @@ while ($listener.IsListening) {
             $response.OutputStream.Close()
         }
     } catch {
-        # Fehler ignorieren
+    
     }
 }
 '@
@@ -128,7 +128,7 @@ Start-Sleep -Seconds 2
 $urlFile = "$env:TEMP\serveo_url.txt"
 Start-Process powershell.exe -WindowStyle Hidden -ArgumentList "-NoProfile", "-Command", "ssh -R 80:localhost:8080 serveo.net | Tee-Object -FilePath `"$urlFile`""
 
-Start-Sleep -Seconds 5  # kurz warten, bis URL geschrieben wird
+Start-Sleep -Seconds 5
 
 Start-Process notepad.exe $urlFile
 
