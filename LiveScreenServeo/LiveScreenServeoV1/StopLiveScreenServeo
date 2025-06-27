@@ -1,0 +1,21 @@
+# ---------------------------
+# Stop all running Liveshare & SSH processes
+# ---------------------------
+
+$liveshareScriptName = "run-liveshare.ps1"
+
+Get-CimInstance Win32_Process | Where-Object {
+    $_.CommandLine -like "*$liveshareScriptName*"
+} | ForEach-Object {
+    Write-Host "❌ End Liveshare process (PID: $($_.ProcessId))"
+    Stop-Process -Id $_.ProcessId -Force
+}
+
+Get-Process ssh -ErrorAction SilentlyContinue | Where-Object {
+    $_.Path -like "*ssh*" -and $_.MainWindowTitle -eq ""
+} | ForEach-Object {
+    Write-Host "❌ Terminate SSH tunnel (PID: $($_.Id))"
+    Stop-Process -Id $_.Id -Force
+}
+
+Write-Host "`n✅ All components have been terminated."
