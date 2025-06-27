@@ -1,5 +1,5 @@
 # ---------------------------
-# 1. Admin-Prüfung
+# 1. Admin-Check
 # ---------------------------
 function Test-IsAdmin {
     $currentUser = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -12,9 +12,9 @@ if (-not (Test-IsAdmin)) {
     Pause
     exit
 }
-
 # ---------------------------
-# 2. Liveshare-Skript schreiben
+# You can delete the Admin-Check if you dont want it only delete from the admin-check to this part i don't recommend changing or deleting anything further only if you know what
+your doing
 # ---------------------------
 $liveshareCode = @'
 Add-Type -AssemblyName System.Windows.Forms
@@ -122,23 +122,14 @@ while ($listener.IsListening) {
 $tempScriptPath = "$env:TEMP\run-liveshare.ps1"
 $liveshareCode | Out-File -Encoding UTF8 $tempScriptPath
 
-# ---------------------------
-# 3. Liveshare starten (Hintergrund)
-# ---------------------------
 Start-Process powershell.exe -WindowStyle Hidden -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$tempScriptPath`""
 Start-Sleep -Seconds 2
 
-# ---------------------------
-# 4. Serveo SSH im Hintergrund, URL in Datei
-# ---------------------------
 $urlFile = "$env:TEMP\serveo_url.txt"
 Start-Process powershell.exe -WindowStyle Hidden -ArgumentList "-NoProfile", "-Command", "ssh -R 80:localhost:8080 serveo.net | Tee-Object -FilePath `"$urlFile`""
 
 Start-Sleep -Seconds 5  # kurz warten, bis URL geschrieben wird
 
-# ---------------------------
-# 5. Fenster mit URL anzeigen (nur zur Anzeige!)
-# ---------------------------
 Start-Process notepad.exe $urlFile
 
 exit
