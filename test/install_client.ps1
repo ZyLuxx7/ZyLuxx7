@@ -20,11 +20,8 @@ $GitHubClientRelativePathInZip = "ZyLuxx7-main/test" # <-- HIER MÖGLICHERWEISE 
 $ClientScriptName = "client.py" # <-- HIER ANPASSEN, falls dein Client anders heißt!
 
 # --- Netzwerk-Ports (MÜSSEN MIT main_app.py und client.py ÜBEREINSTIMMEN) ---
-# Multicast-Port für die automatische Server-Erkennung (UDP eingehend auf der VM)
-$MulticastPort = 5007
-
-# TCP-Port für die eigentliche Steuerungsverbindung (ausgehend von der VM zum Server)
-$ServerTcpPort = 12345
+$MulticastPort = 5007 # UDP eingehend (für Client zum Empfangen von Server-Beacons)
+$ServerTcpPort = 12345 # TCP ausgehend (für Client zum Verbinden mit Server)
 
 # --- Python- und Installationspfade ---
 $PythonVersion = "3.9.13" # Empfohlene Python-Version für Stabilität und Kompatibilität
@@ -203,8 +200,8 @@ function Setup-ClientAutoStart {
     $action = New-ScheduledTaskAction -Execute "python.exe" -Argument "$ClientScriptPath" -WorkingDirectory $ClientAppDir
     # Definiert den Trigger: Beim Systemstart
     $trigger = New-ScheduledTaskTrigger -AtStartup
-    # Definiert die Einstellungen: Kompatibilität, und WICHTIG: -Hidden für Unsichtbarkeit (läuft im Hintergrund)
-    $settings = New-ScheduledTaskSettingsSet -Compatibility V2.1 -Hidden
+    # Definiert die Einstellungen: Kompatibilität (jetzt auf V2 für bessere Kompatibilität) und Unsichtbarkeit
+    $settings = New-ScheduledTaskSettingsSet -Compatibility V2 -Hidden # <-- KORREKTUR: Geändert von V2.1 auf V2
     # Definiert das Benutzerkonto: SYSTEM-Konto für maximale Rechte und Hintergrundausführung
     $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
 
