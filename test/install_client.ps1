@@ -201,7 +201,7 @@ function Setup-ClientAutoStart {
     # Definiert den Trigger: Beim Systemstart
     $trigger = New-ScheduledTaskTrigger -AtStartup
     # Definiert die Einstellungen: Kompatibilität (jetzt auf V2 für bessere Kompatibilität) und Unsichtbarkeit
-    $settings = New-ScheduledTaskSettingsSet -Compatibility V2 -Hidden # <-- KORREKTUR: Geändert von V2.1 auf V2
+    $settings = New-ScheduledTaskSettingsSet -Compatibility Win8 -Hidden # <-- KORREKTUR: Geändert von V2 auf Win8
     # Definiert das Benutzerkonto: SYSTEM-Konto für maximale Rechte und Hintergrundausführung
     $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
 
