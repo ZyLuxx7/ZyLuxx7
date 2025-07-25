@@ -4,21 +4,28 @@
 # lädt den VM Control Client von GitHub herunter und richtet den automatischen Start ein.
 
 # --- Konfiguration (BITTE ÜBERPRÜFEN / ANPASSEN) ---
+# DIES IST DIE URL ZUR ZIP-DATEI DEINES GITHUB-REPOSITORIES.
+# So findest du die URL: Gehe zu deinem GitHub-Repo, klicke auf den grünen "< > Code"-Button,
+# und wähle "Download ZIP". Die URL, die dabei im Browser angezeigt wird, ist die richtige.
 $GitHubRepoZipUrl = "https://github.com/ZyLuxx7/ZyLuxx7/archive/refs/heads/main.zip" # <-- HIER ANPASSEN!
+
+# Dies ist der relative Pfad ZUM ORDNER des Clients INNERHALB des entpackten ZIP-Archives.
+# Wenn du dein Repo als ZIP herunterlädst, ist der Hauptordner im ZIP oft "DeinRepoName-main".
+# Dein Client-Code liegt dann z.B. in "DeinRepoName-main/test".
 $GitHubClientRelativePathInZip = "ZyLuxx7-main/test" # <-- HIER MÖGLICHERWEISE ANPASSEN!
+
+# Der Dateiname deines Python-Client-Skripts im GitHub-Repo (z.B. client.py)
 $ClientScriptName = "client.py" # <-- HIER ANPASSEN!
 
-# --- Netzwerk-Ports (Nur noch TCP-Port für Serveo-Verbindung) ---
-$ServerTcpPort = 12345 # TCP ausgehend (für Client zum Verbinden mit Serveo)
+# --- Netzwerk-Ports (Nur TCP-Port, der vom Client angesprochen wird) ---
+$ServerTcpPort = 62345 # Dies ist der Zielport, mit dem sich der Client verbinden wird
 
 # --- Python- und Installationspfade ---
-$PythonVersion = "3.9.13"
+$PythonVersion = "3.9.13" # Empfohlene Python-Version für Stabilität und Kompatibilität
 $PythonInstallerUrl = "https://www.python.org/ftp/python/$PythonVersion/python-$PythonVersion-amd64.exe"
-$ClientAppDir = "C:\VMControlClient"
+$ClientAppDir = "C:\VMControlClient" # Zielverzeichnis auf der VM für den Client
 $ClientScriptPath = Join-Path $ClientAppDir $ClientScriptName
-$SchedulerTaskName = "VMControlClientAutoStart"
-
-# --- KEINE Firewall-Regel für Multicast mehr nötig auf der VM ---
+$SchedulerTaskName = "VMControlClientAutoStart" # Name der Windows-Aufgabe für den Autostart
 
 # --- Variable zur Fehlerprüfung (intern) ---
 $scriptError = $false
@@ -33,7 +40,7 @@ function Log-Message {
     Write-Host "[$Timestamp] $Message" -ForegroundColor $Color
 }
 
-# --- Funktionen für die Installation (unverändert) ---
+# --- Funktionen für die Installation ---
 function Test-PythonInstallation {
     Log-Message "Überprüfe Python-Installation..."
     try {
@@ -187,11 +194,9 @@ function Setup-ClientAutoStart {
     }
 }
 
-# KEINE Configure-FirewallRule für Multicast mehr nötig auf der VM
-
 # --- Haupt-Logik des Skripts ---
 Log-Message "------------------------------------------------------------------------------------------------------------------"
-Log-Message "STARTE VM CLIENT INSTALLATIONSSKRIPT (SERVEO-MODUS)"
+Log-Message "STARTE VM CLIENT INSTALLATIONSSKRIPT (DYN_DNS-MODUS)"
 Log-Message "Dieses Skript wird den VM Control Client automatisch installieren und konfigurieren."
 Log-Message "------------------------------------------------------------------------------------------------------------------"
 
@@ -211,15 +216,13 @@ try {
         throw "FATALER FEHLER: Konnte Python-Abhängigkeiten nicht installieren. Bitte prüfen Sie die Log-Ausgabe."
     }
     
-    # Keine Firewall-Regel für Multicast mehr nötig, da Client direkt Serveo kontaktiert
-    
     if (-not (Setup-ClientAutoStart)) {
         throw "FATALER FEHLER: Fehler beim Einrichten des automatischen Starts. Bitte prüfen Sie die Berechtigungen."
     }
 
     Log-Message "------------------------------------------------------------------------------------------------------------------"
     Log-Message "INSTALLATION ABGESCHLOSSEN!" -Color Green
-    Log-Message "Der VM Client sollte beim nächsten Neustart der VM automatisch starten und sich mit Serveo verbinden."
+    Log-Message "Der VM Client sollte beim nächsten Neustart der VM automatisch starten und sich mit dem Server verbinden."
     Log-Message "Sie können den Client manuell starten, indem Sie 'python $ClientScriptPath' in einer PowerShell ausführen."
     Log-Message "------------------------------------------------------------------------------------------------------------------"
 
@@ -235,16 +238,14 @@ try {
 # Wichtiger Hinweis für den Benutzer, immer anzeigen
 Log-Message "------------------------------------------------------------------------------------------------------------------" -Color Yellow
 Log-Message "WICHTIGER HINWEIS FÜR HAUPT-PC (SERVER):" -Color Yellow
-Log-Message "1. Stellen Sie sicher, dass 'main_app.py' läuft." -Color Yellow
-Log-Message "2. Starten Sie den Serveo-Tunnel über SSH mit dem Befehl, der von 'main_app.py' ausgegeben wird." -Color Yellow
-Log-Message "   (Beispiel: ssh -R your_chosen_name.serveo.net:12345:localhost:12345 serveo.net)" -Color Yellow
-Log-Message "3. Stellen Sie sicher, dass Ihre Windows-Firewall auf dem Haupt-PC den Port 12345 (TCP eingehend) zulässt." -Color Yellow
+Log-Message "1. Stellen Sie sicher, dass 'server_app.py' läuft." -Color Yellow
+Log-Message "2. Stellen Sie sicher, dass Ihr DynDNS-Client (DUC) auf dem Haupt-PC läuft und den Hostnamen aktualisiert." -Color Yellow
+Log-Message "3. Stellen Sie sicher, dass die Port-Weiterleitung (Port 62345 TCP) in Ihrem Router zur festen IP des Haupt-PCs eingerichtet ist." -Color Yellow
+Log-Message "4. Stellen Sie sicher, dass Ihre Windows-Firewall auf dem Haupt-PC den Port 62345 (TCP eingehend) zulässt." -Color Yellow
 Log-Message "------------------------------------------------------------------------------------------------------------------" -Color Yellow
 
 if ($scriptError) {
-    Log-Message "Das Skript wurde mit FEHLERN beendet. Drücken Sie eine beliebige Taste, um fortzufahren..." -Color Red
-    Pause
+    exit 1
 } else {
-    Log-Message "Das Skript wurde erfolgreich beendet. Drücken Sie eine beliebige Taste, um fortzufahren..." -Color Green
-    Pause
+    exit 0
 }
