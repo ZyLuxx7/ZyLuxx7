@@ -14,7 +14,7 @@ if (-not (Test-IsAdmin)) {
 }
 # ---------------------------
 # You can delete the Admin-Check if you dont want it only delete from the admin-check to this part i don't recommend changing or deleting anything further only if you know what
-your doing
+#your doing
 # ---------------------------
 $liveshareCode = @'
 Add-Type -AssemblyName System.Windows.Forms
