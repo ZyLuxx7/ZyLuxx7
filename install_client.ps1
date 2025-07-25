@@ -21,7 +21,10 @@ $SchedulerTaskName = "VMControlClientAutoStart"
 $scriptError = $false
 
 function Log-Message {
-    param([string]$Message, [string]$Color = "Cyan")
+    param(
+        [string]$Message,
+        [string]$Color = "Cyan"
+    )
     $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     Write-Host "[$Timestamp] $Message" -ForegroundColor $Color
 }
@@ -49,16 +52,23 @@ function Install-Python {
     $InstallerPath = Join-Path $env:TEMP "python_installer.exe"
     
     try {
-        Log-Message "Prüfe Internetverbindung..."
+        Log-Message "Prüfe Internetverbindung zum Herunterladen des Python-Installers..."
         try {
             $webRequest = Invoke-WebRequest -Uri "http://www.google.com" -UseBasicParsing -ErrorAction SilentlyContinue -TimeoutSec 10
-            if ($webRequest.StatusCode -ne 200) { Log-Message "WARNUNG: Keine aktive Internetverbindung." -Color Yellow }
-            else { Log-Message "Internetverbindung scheint aktiv." }
-        } catch { Log-Message "FEHLER: Internetverbindungstest fehlgeschlagen: $_." -Color Red }
+            if ($webRequest.StatusCode -ne 200) {
+                Log-Message "WARNUNG: Keine aktive Internetverbindung oder Zugriff auf Google.com. Python-Download könnte fehlschlagen." -Color Yellow
+            } else {
+                Log-Message "Internetverbindung scheint aktiv."
+            }
+        } catch {
+            Log-Message "FEHLER: Internetverbindungstest fehlgeschlagen: $_. Python-Download könnte fehlschlagen." -Color Red
+        }
 
         Invoke-WebRequest -Uri $PythonInstallerUrl -OutFile $InstallerPath -ErrorAction Stop
         Log-Message "Python-Installer heruntergeladen."
+
         $installArgs = "/quiet InstallAllUsers=1 PrependPath=1 Include_debug_symbols=0 Include_dev_files=0 Include_test=0 Include_tcltk=0 Include_launcher=0"
+
         Log-Message "Starte Python-Installation... Dies kann einige Minuten dauern."
         $process = Start-Process -FilePath $InstallerPath -ArgumentList $installArgs -Wait -PassThru -ErrorAction Stop
         if ($process.ExitCode -eq 0) {
@@ -68,7 +78,7 @@ function Install-Python {
             Start-Sleep -Seconds 2
             return $true
         } else {
-            Log-Message "FEHLER: Python-Installation fehlgeschlagen. Exit Code: $($process.ExitCode)." -Color Red
+            Log-Message "FEHLER: Python-Installation fehlgeschlagen. Exit Code: $($process.ExitCode). Prüfen Sie das Installationslog, falls verfügbar." -Color Red
             return $false
         }
     } catch {
@@ -81,9 +91,11 @@ function Install-PythonDependencies {
     Log-Message "Installiere Python-Abhängigkeiten (pip)..."
     try {
         Push-Location $ClientAppDir
+        
         Log-Message "Aktualisiere pip auf die neueste Version..."
         python -m pip install --upgrade pip -ErrorAction Stop
         Log-Message "pip erfolgreich aktualisiert."
+
         if (Test-Path (Join-Path $ClientAppDir "requirements.txt")) {
             Log-Message "requirements.txt gefunden. Installiere Abhängigkeiten daraus."
             python -m pip install -r requirements.txt -ErrorAction Stop
@@ -139,12 +151,8 @@ function Setup-ClientAutoStart {
     $taskAction = "python.exe ""$ClientScriptPath"""
     
     try {
-        # Löscht die Aufgabe, falls sie schon existiert
         Log-Message "Lösche bestehende geplante Aufgabe '$SchedulerTaskName', falls vorhanden."
         schtasks /delete /tn "$SchedulerTaskName" /f | Out-Null
-        
-        # Erstellt die neue geplante Aufgabe mit schtasks
-        Log-Message "Erstelle neue geplante Aufgabe mit schtasks.exe..."
         $schtasksCmd = "schtasks /create /tn ""$SchedulerTaskName"" /tr ""$taskAction"" /sc onstart /ru SYSTEM /f"
         $result = Invoke-Expression $schtasksCmd
         Log-Message "Geplante Aufgabe '$SchedulerTaskName' erfolgreich erstellt."
@@ -153,6 +161,52 @@ function Setup-ClientAutoStart {
         Log-Message "FEHLER: Beim Erstellen der geplanten Aufgabe mit schtasks: $_" -Color Red
         return $false
     }
+}
+
+# --- NEUE FUNKTION: Führt die finalen Checks durch ---
+function Run-FinalChecks {
+    Log-Message "------------------------------------------------------------------------------------------------------------------"
+    Log-Message "DURCHFÜHRUNG DER FINALEN PRÜFUNG..." -Color Yellow
+    $success = $true
+
+    # 1. Prüfe, ob Python im PATH ist
+    if (Get-Command python.exe -ErrorAction SilentlyContinue) {
+        Log-Message "✅ Python im System-PATH gefunden." -Color Green
+    } else {
+        Log-Message "❌ Python nicht im System-PATH gefunden." -Color Red; $success = $false
+    }
+
+    # 2. Prüfe, ob die Client-Datei existiert
+    if (Test-Path $ClientScriptPath) {
+        Log-Message "✅ Client-Skript '$ClientScriptName' am korrekten Ort gefunden." -Color Green
+    } else {
+        Log-Message "❌ Client-Skript '$ClientScriptName' nicht gefunden." -Color Red; $success = $false
+    }
+
+    # 3. Prüfe, ob die geplante Aufgabe existiert
+    if (schtasks /query /tn "$SchedulerTaskName" | Select-String "SUCCESS") {
+        Log-Message "✅ Geplante Aufgabe '$SchedulerTaskName' erfolgreich erstellt." -Color Green
+    } else {
+        Log-Message "❌ Geplante Aufgabe '$SchedulerTaskName' nicht gefunden." -Color Red; $success = $false
+    }
+    
+    # 4. Prüfe, ob die Abhängigkeiten installiert sind (einfache Prüfung)
+    try {
+        python -c "import pynput, PIL" -ErrorAction Stop
+        Log-Message "✅ Python-Abhängigkeiten (pynput, Pillow) installiert." -Color Green
+    } catch {
+        Log-Message "❌ Python-Abhängigkeiten nicht installiert oder Fehler." -Color Red; $success = $false
+    }
+
+    Log-Message "------------------------------------------------------------------------------------------------------------------"
+    if ($success) {
+        Log-Message "ALLE PRÜFUNGEN ERFOLGREICH BESTANDEN!" -Color Green
+    } else {
+        Log-Message "WARNUNG: EINIGE PRÜFUNGEN SIND FEHLGESCHLAGEN. ÜBERPRÜFEN SIE DIE OBEREN MELDUNGEN." -Color Red
+    }
+    Log-Message "------------------------------------------------------------------------------------------------------------------"
+
+    return $success
 }
 
 # --- Haupt-Logik des Skripts ---
@@ -178,30 +232,32 @@ try {
     }
 
     Log-Message "------------------------------------------------------------------------------------------------------------------"
-    Log-Message "INSTALLATION ABGESCHLOSSEN!" -Color Green
-    Log-Message "Der VM Client sollte beim nächsten Neustart der VM automatisch starten."
-    Log-Message "Sie können den Client manuell starten, indem Sie 'python $ClientScriptPath' in einer PowerShell ausführen."
-    Log-Message "------------------------------------------------------------------------------------------------------------------"
+    Log-Message "INSTALLATIONSPROZESS ABGESCHLOSSEN." -Color Green
+    Log-Message "Führe finale Prüfung durch..."
+    $checkResult = Run-FinalChecks
 
 } catch {
     Log-Message "------------------------------------------------------------------------------------------------------------------" -Color Red
     Log-Message "FEHLER WÄHREND DER INSTALLATION!" -Color Red
     Log-Message "Fehlermeldung: $($_.Exception.Message)" -Color Red
-    Log-Message "Bitte überprüfen Sie die oben stehenden Meldungen für weitere Details zum Problem." -Color Red
     Log-Message "------------------------------------------------------------------------------------------------------------------" -Color Red
     $scriptError = $true
 }
 
 Log-Message "------------------------------------------------------------------------------------------------------------------" -Color Yellow
-Log-Message "WICHTIGER HINWEIS:" -Color Yellow
-Log-Message "1. Stellen Sie sicher, dass 'server_app.py' auf dem Haupt-PC läuft." -Color Yellow
-Log-Message "2. Stellen Sie sicher, dass Ihr DynDNS-Client (DUC) auf dem Haupt-PC läuft." -Color Yellow
-Log-Message "3. Stellen Sie sicher, dass die Port-Weiterleitung im Router zum Haupt-PC korrekt ist." -Color Yellow
-Log-Message "4. Stellen Sie sicher, dass Ihre Windows-Firewall auf dem Haupt-PC den Port 62345 (TCP eingehend) zulässt." -Color Yellow
+Log-Message "WICHTIGER HINWEIS FÜR HAUPT-PC (SERVER):" -Color Yellow
+Log-Message "1. Stelle sicher, dass 'server_app.py' läuft." -Color Yellow
+Log-Message "2. Stelle sicher, dass dein DynDNS-Client (DUC) auf dem Haupt-PC läuft." -Color Yellow
+Log-Message "3. Stelle sicher, dass die Port-Weiterleitung im Router zum Haupt-PC korrekt ist." -Color Yellow
+Log-Message "4. Stelle sicher, dass deine Windows-Firewall den Port 62345 (TCP eingehend) zulässt." -Color Yellow
 Log-Message "------------------------------------------------------------------------------------------------------------------" -Color Yellow
 
 if ($scriptError) {
+    Log-Message "Das Skript ist mit FEHLERN beendet worden. Es wird in 5 Sekunden geschlossen." -Color Red
+    Start-Sleep -Seconds 5
     exit 1
 } else {
+    Log-Message "Das Skript wurde erfolgreich beendet. Es wird in 1 Sekunde geschlossen." -Color Green
+    Start-Sleep -Seconds 1
     exit 0
 }
