@@ -258,6 +258,6 @@ if ($scriptError) {
     exit 1
 } else {
     Log-Message "Das Skript wurde erfolgreich beendet. Es wird in 1 Sekunde geschlossen." -Color Green
-    Start-Sleep -Seconds 1
+    Start-Sleep -Seconds 15
     exit 0
 }
